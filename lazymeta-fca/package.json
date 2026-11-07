@@ -1,0 +1,9 @@
+{
+  "name": "lazymeta-fca",
+  "version": "1.0.0",
+  "description": "Lazymeta FCA: thin Messenger client wrapper for Phobia. Accepts cookie strings or appState JSON and exposes one consistent API.",
+  "main": "index.js",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws3-fca": "2.0.1" }
+}
