@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phobia</title>
+<style>
+:root{--bg:#f2f2f3;--panel:#fff;--line:#d8d8dc;--text:#1b1b1e;--muted:#6a6a72;--ink:#3a3a40;--ok:#2f7d4f;--bad:#b3372f;--wait:#8a6d1f;
+--font:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 var(--font);min-height:100vh}
+main{max-width:940px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px}
+h1{font-size:30px;letter-spacing:-.03em;margin:0}h2{font-size:15px;margin:0 0 12px}
+.net{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}.on .dot{background:var(--ok)}.off .dot{background:var(--bad)}
+.grid{display:grid;gap:16px}@media(min-width:760px){.grid{grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}}
+section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px}
+textarea,input{width:100%;border:1px solid var(--line);border-radius:6px;padding:10px;font:13px/1.4 var(--mono);background:#fafafa;color:var(--text)}
+textarea{min-height:110px;resize:vertical}
+:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+button{font:inherit;font-weight:600;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:6px;padding:8px 14px;cursor:pointer}
+button.ghost{background:transparent;color:var(--ink);border-color:var(--line)}button:disabled{opacity:.5}
+.hint{font-size:13px;color:var(--muted);margin:0 0 10px}
+.msg{font-size:13px;min-height:20px;margin-top:8px}.ok{color:var(--ok)}.bad{color:var(--bad)}.wait{color:var(--wait)}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:14px}dt{color:var(--muted)}dd{margin:0;text-align:right}
+ul{list-style:none;margin:0;padding:0;font:13px/1.4 var(--mono);max-height:240px;overflow:auto}
+li{padding:6px 0;border-top:1px solid var(--line)}li:first-child{border-top:0}li time{color:var(--muted);margin-right:8px}
+#login{max-width:360px;margin:12vh auto 0}
+.grp{padding:8px 0;border-top:1px solid var(--line)}.grp:first-child{border-top:0}.grprow{display:flex;gap:8px;align-items:center;justify-content:space-between}.grp details{margin-top:6px}.grp summary{cursor:pointer;font-size:12px;color:var(--muted)}.form{display:grid;gap:10px;margin-bottom:8px}@media(min-width:760px){.form{grid-template-columns:1fr 1fr}}.form label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}.form .chk{flex-direction:row;align-items:center;gap:8px;color:var(--text);grid-column:1/-1}.form .chk input{width:auto}.form h3{grid-column:1/-1;margin:6px 0 0;font-size:13px}.grp span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.grp small{color:var(--muted);display:block;font:11px var(--mono)}select{font:inherit;border:1px solid var(--line);border-radius:6px;padding:6px;background:#fafafa}
+#groups{max-height:320px;overflow:auto}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Phobia</h1>
+    <div id="net" class="net"><span class="dot"></span><span id="netText">Checking connection</span></div>
+  </header>
+
+  <section id="login" hidden>
+    <h2>Dashboard password</h2>
+    <input id="pw" type="password" autocomplete="current-password" placeholder="Password">
+    <div class="row"><button id="loginBtn">Log in</button></div>
+    <div id="loginMsg" class="msg" role="status"></div>
+  </section>
+
+  <div id="app" class="grid" hidden>
+    <section>
+      <h2>Facebook login (c3c appstate or cookie)</h2>
+      <p class="hint">Paste the appstate JSON exported by c3c (or any cookie header). It is checked first, then saved encrypted if SESSION_SECRET is set on the host. Otherwise it stays in memory and must be pasted again after a restart.</p>
+      <textarea id="cookie" spellcheck="false" autocomplete="off" placeholder="c_user=...; xs=...; datr=...  or  [{&quot;key&quot;:&quot;c_user&quot;,...}]"></textarea>
+      <div class="row"><button id="send">Connect session</button><button id="clearCookie" class="ghost">Remove session</button></div>
+      <div id="cookieMsg" class="msg" role="status"></div>
+    </section>
+
+    <section>
+      <h2>Admin IDs</h2>
+      <p class="hint">Numeric Messenger user IDs allowed to use the !banat on/off commands in chat. Separate with commas or new lines.</p>
+      <textarea id="admins" spellcheck="false" placeholder="100012345678901"></textarea>
+      <div class="row"><button id="saveAdmins">Save admin IDs</button></div>
+      <div id="adminMsg" class="msg" role="status"></div>
+    </section>
+
+    <section class="wide">
+      <h2>Bot settings</h2>
+      <div class="form">
+        <label class="chk"><input type="checkbox" id="gCommands"> Allow chat commands (!banat on, off, toggle, status)</label>
+        <label class="chk"><input type="checkbox" id="gDefaultOn"> Turn Banat on automatically in any group that messages the bot</label>
+        <label>Messages sending at once (1-10)<input id="gSendLimit" type="number" min="1" max="10"></label>
+        <label>Cooldown per group (ms)<input id="gCooldown" type="number" min="0" max="300000"></label>
+        <label>Typo rate (0-0.5)<input id="gTypo" type="number" min="0" max="0.5" step="0.01"></label>
+        <label>Shorthand rate (0-1)<input id="gShort" type="number" min="0" max="1" step="0.01"></label>
+        <label>Hesitation rate (0-0.35)<input id="gHes" type="number" min="0" max="0.35" step="0.01"></label>
+        <h3>Reaction</h3>
+        <label class="chk"><input type="checkbox" id="rEnabled"> React with an emoji</label>
+        <label>Emoji<input id="rEmoji" maxlength="16"></label>
+        <label>React to<select id="rTarget"><option value="bot_replies">Bot replies</option><option value="incoming_messages">Incoming messages</option><option value="both">Both</option></select></label>
+        <label>Chance (%)<input id="rProb" type="number" min="0" max="100"></label>
+        <label>Cooldown (seconds)<input id="rCool" type="number" min="0" max="86400"></label>
+      </div>
+      <div class="row"><button id="saveSettings">Save settings</button></div>
+      <div id="settingsMsg" class="msg" role="status"></div>
+    </section>
+
+    <section class="wide">
+      <h2>Target group chats</h2>
+      <p class="hint">Turn Banat on or off per group chat. "Default" follows the !banat command.</p>
+      <div class="row" style="margin:0 0 8px"><input id="gfilter" placeholder="Search groups" style="flex:1;min-width:160px"><button id="allOn" class="ghost">All ON</button><button id="allOff" class="ghost">All OFF</button></div>
+      <div id="groups"><div class="hint">Loading groups...</div></div>
+      <div class="row"><button id="reloadGroups" class="ghost">Reload groups</button></div>
+      <div id="groupMsg" class="msg" role="status"></div>
+    </section>
+
+    <section>
+      <h2>Status</h2>
+      <dl>
+        <dt>Facebook session</dt><dd id="sFb">-</dd>
+        <dt>Processing</dt><dd id="sProc">-</dd>
+        <dt>Login</dt><dd id="sLogin">-</dd>
+        <dt>Account ID</dt><dd id="sAcct">-</dd>
+        <dt>Session saved</dt><dd id="sStore">-</dd>
+        <dt>Last message</dt><dd id="sLast">-</dd>
+        <dt>Uptime</dt><dd id="sUp">-</dd>
+        <dt>Node</dt><dd id="sNode">-</dd>
+        <dt>Memory</dt><dd id="sMem">-</dd>
+      </dl>
+      <div class="row"><button id="resume" class="ghost">Resume</button><button id="pause" class="ghost">Pause</button><button id="logout" class="ghost">Log out</button></div>
+    </section>
+
+    <section>
+      <h2>Recent activity</h2>
+      <ul id="log"><li>Nothing yet.</li></ul>
+    </section>
+  </div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+let token=''; try{token=sessionStorage.getItem('phobia_token')||''}catch(_){}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function say(id,t,k){const e=$(id);e.textContent=t;e.className='msg '+(k||'')}
+
+async function api(path,method,body){
+  const r=await fetch(path,{method:method||'GET',cache:'no-store',
+    headers:{'Content-Type':'application/json','X-Phobia-Token':token},
+    body:body===undefined?undefined:JSON.stringify(body)});
+  let d={};try{d=await r.json()}catch(_){}
+  if(r.status===401&&d.login_required){showLogin();throw new Error('Please log in again.')}
+  if(!r.ok)throw new Error(d.error||('Request failed ('+r.status+')'));
+  return d;
+}
+function showLogin(){token='';try{sessionStorage.removeItem('phobia_token')}catch(_){}
+  $('login').hidden=false;$('app').hidden=true}
+function showApp(){$('login').hidden=true;$('app').hidden=false;loadAdmins();loadSettings();loadGroups();refresh()}
+
+$('loginBtn').onclick=async()=>{
+  if(!navigator.onLine){say('loginMsg','You are offline.','wait');return}
+  say('loginMsg','Checking...','wait');
+  try{
+    const r=await fetch('/api/phobia/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:$('pw').value})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(d.error||'Login failed');
+    token=d.token;try{sessionStorage.setItem('phobia_token',token)}catch(_){}
+    $('pw').value='';say('loginMsg','');showApp();
+  }catch(e){say('loginMsg',e.message,'bad')}
+};
+$('pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginBtn').click()});
+$('logout').onclick=async()=>{try{await api('/api/phobia/logout','POST',{})}catch(_){}showLogin()};
+
+function parseCookie(raw){
+  raw=raw.trim();if(!raw)return'Paste a cookie first.';
+  let has=/(^|;\s*)c_user=/.test(raw);
+  if(raw[0]==='['||raw[0]==='{'){try{has=/"c_user"/.test(raw)&&JSON.parse(raw)!=null}catch(_){return'That JSON is not valid.'}}
+  return has?'':'Missing c_user. Export the cookies again while logged in.';
+}
+$('send').onclick=async()=>{
+  if(!navigator.onLine){say('cookieMsg','You are offline. Reconnect to send the session.','wait');return}
+  const err=parseCookie($('cookie').value);if(err){say('cookieMsg',err,'bad');return}
+  $('send').disabled=true;say('cookieMsg','Sending...','wait');
+  try{await api('/api/dashboard/session','POST',{cookie:$('cookie').value.trim()});
+    say('cookieMsg','Session accepted. Validating the login now.','ok');$('cookie').value='';setTimeout(refresh,3000)}
+  catch(e){say('cookieMsg',e.message,'bad')}
+  $('send').disabled=false;
+};
+$('clearCookie').onclick=async()=>{try{await api('/api/dashboard/session','DELETE');say('cookieMsg','Session removed.','ok')}catch(e){say('cookieMsg',e.message,'bad')}};
+
+async function loadAdmins(){try{const d=await api('/api/dashboard/admins');$('admins').value=(d.admin_ids||[]).join('\n')}catch(_){}}
+$('saveAdmins').onclick=async()=>{
+  try{const d=await api('/api/dashboard/admins','POST',{admin_ids:$('admins').value});
+    $('admins').value=d.admin_ids.join('\n');say('adminMsg','Saved '+d.admin_ids.length+' admin ID(s).','ok')}
+  catch(e){say('adminMsg',e.message,'bad')}
+};
+
+
+function field(label,input){const l=document.createElement('label');l.textContent=label;l.appendChild(input);return l}
+function numInput(v,ph){const i=document.createElement('input');i.type='number';i.min='0';i.placeholder=ph;i.value=v==null?'':v;return i}
+async function loadGroups(){
+  const box=$('groups');
+  try{
+    const g=await api('/api/dashboard/groups');
+    const st=await api('/api/dashboard/settings');
+    const saved=(st.settings&&st.settings.groups)||{};
+    box.textContent='';
+    if(!g.groups.length){box.textContent='No group chats found.';return}
+    g.groups.forEach(x=>{
+      const cfg=saved[x.threadID]||{};
+      const wrap=document.createElement('div');wrap.className='grp';
+      const row=document.createElement('div');row.className='grprow';
+      const label=document.createElement('span');label.textContent=x.name;
+      const id=document.createElement('small');id.textContent=x.threadID;label.appendChild(id);
+      const sel=document.createElement('select');
+      [['inherit','Default'],['on','Banat ON'],['off','Banat OFF']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;sel.appendChild(o)});
+      sel.value=cfg.banatMode||'inherit';
+      sel.onchange=async()=>{
+        try{await api('/api/dashboard/settings/group','POST',{threadID:x.threadID,banatMode:sel.value});say('groupMsg',x.name+': '+sel.options[sel.selectedIndex].text,'ok')}
+        catch(e){say('groupMsg',e.message,'bad');sel.value=cfg.banatMode||'inherit'}
+      };
+      row.appendChild(label);row.appendChild(sel);wrap.appendChild(row);
+
+      const det=document.createElement('details');
+      const sum=document.createElement('summary');sum.textContent='Group options';det.appendChild(sum);
+      const form=document.createElement('div');form.className='form';
+      const typing=document.createElement('input');typing.type='checkbox';typing.checked=cfg.typingEnabled!==false;
+      const tl=document.createElement('label');tl.className='chk';tl.appendChild(typing);tl.appendChild(document.createTextNode(' Show typing indicator'));
+      const delay=numInput(cfg.replyDelayMs,'auto'),cool=numInput(cfg.cooldownMs,'default');
+      const qs=document.createElement('input');qs.type='time';qs.value=cfg.quietStart||'';
+      const qe=document.createElement('input');qe.type='time';qe.value=cfg.quietEnd||'';
+      form.appendChild(tl);
+      form.appendChild(field('Reply delay (ms, blank = automatic)',delay));
+      form.appendChild(field('Cooldown (ms, blank = default)',cool));
+      form.appendChild(field('Quiet from (Manila time)',qs));
+      form.appendChild(field('Quiet until',qe));
+      det.appendChild(form);
+      const save=document.createElement('button');save.className='ghost';save.textContent='Save group options';
+      save.onclick=async()=>{
+        try{await api('/api/dashboard/settings/group','POST',{threadID:x.threadID,banatMode:sel.value,typingEnabled:typing.checked,replyDelayMs:delay.value===''?null:Number(delay.value),cooldownMs:cool.value===''?null:Number(cool.value),quietStart:qs.value,quietEnd:qe.value});say('groupMsg',x.name+': options saved','ok')}
+        catch(e){say('groupMsg',e.message,'bad')}
+      };
+      det.appendChild(save);wrap.appendChild(det);box.appendChild(wrap);
+    });
+  }catch(e){box.textContent='';say('groupMsg',e.message+' (the bot must be connected to list groups)','bad')}
+}
+$('reloadGroups').onclick=loadGroups;
+$('gfilter').oninput=()=>{const q=$('gfilter').value.trim().toLowerCase();document.querySelectorAll('#groups .grp').forEach(r=>{r.hidden=!!q&&!r.textContent.toLowerCase().includes(q)})};
+async function bulk(mode){
+  const rows=[...document.querySelectorAll('#groups .grp')].filter(r=>!r.hidden);
+  if(!rows.length){say('groupMsg','No groups to change.','wait');return}
+  if(!confirm('Set Banat '+mode.toUpperCase()+' for '+rows.length+' group(s)?'))return;
+  let ok=0;
+  for(const r of rows){
+    const id=r.querySelector('small').textContent,sel=r.querySelector('.grprow select');
+    try{await api('/api/dashboard/settings/group','POST',{threadID:id,banatMode:mode});sel.value=mode;ok++}catch(_){}
+  }
+  say('groupMsg','Banat '+mode.toUpperCase()+' set for '+ok+' of '+rows.length+' group(s).',ok===rows.length?'ok':'bad');
+}
+$('allOn').onclick=()=>bulk('on');$('allOff').onclick=()=>bulk('off');
+async function loadSettings(){
+  try{
+    const d=(await api('/api/dashboard/settings')).settings||{},g=d.global||{},r=d.reaction||{};
+    $('gCommands').checked=g.commandsEnabled!==false;$('gDefaultOn').checked=!!g.defaultOn;
+    $('gSendLimit').value=g.sendLimit;$('gCooldown').value=g.threadCooldownMs;
+    $('gTypo').value=g.typoRate;$('gShort').value=g.shorthandRate;$('gHes').value=g.hesitationRate;
+    $('rEnabled').checked=r.enabled!==false;$('rEmoji').value=r.emoji||'';$('rTarget').value=r.target||'bot_replies';
+    $('rProb').value=r.probability;$('rCool').value=r.cooldownSeconds;
+  }catch(e){say('settingsMsg',e.message,'bad')}
+}
+$('saveSettings').onclick=async()=>{
+  say('settingsMsg','Saving...','wait');
+  try{
+    await api('/api/dashboard/settings/global','POST',{commandsEnabled:$('gCommands').checked,defaultOn:$('gDefaultOn').checked,sendLimit:Number($('gSendLimit').value),threadCooldownMs:Number($('gCooldown').value),typoRate:Number($('gTypo').value),shorthandRate:Number($('gShort').value),hesitationRate:Number($('gHes').value)});
+    await api('/api/dashboard/settings/reaction','POST',{enabled:$('rEnabled').checked,emoji:$('rEmoji').value,target:$('rTarget').value,probability:Number($('rProb').value),cooldownSeconds:Number($('rCool').value)});
+    say('settingsMsg','Settings saved.','ok');loadSettings();
+  }catch(e){say('settingsMsg',e.message,'bad')}
+};
+const up=s=>{s=Math.floor(s||0);return Math.floor(s/3600)+'h '+Math.floor(s%3600/60)+'m'};
+async function refresh(){
+  if(!navigator.onLine||$('app').hidden)return;
+  try{
+    const s=await api('/api/dashboard/status');
+    $('sFb').textContent=s.facebook_connected?'Connected':'Not connected';
+    $('sProc').textContent=s.bot_paused?'Paused':(s.bot_running?'Running':'Idle');
+    $('sLogin').textContent=s.login_in_progress?'In progress':(s.login_error?'Error':'OK');
+    $('sAcct').textContent=s.facebook_user_id||'-';
+    $('sLast').textContent=s.last_message_at?new Date(s.last_message_at).toLocaleTimeString():'-';
+    try{const ss=await api('/api/dashboard/session');const x=ss.session||{};$('sStore').textContent=x.configured?(x.survivesRestart?'Yes, '+x.storage:'In memory only'):'No session'}catch(_){}
+    $('sUp').textContent=up(s.uptime_seconds);$('sNode').textContent=s.node_version||'-';
+    $('sMem').textContent=s.memory&&s.memory.rss?Math.round(s.memory.rss/1048576)+' MB':'-';
+    const e=await api('/api/dashboard/events');
+    if(e.events&&e.events.length)$('log').innerHTML=e.events.slice(0,30).map(x=>'<li><time>'+esc(new Date(x.at).toLocaleTimeString())+'</time>'+esc(x.type)+'</li>').join('');
+  }catch(_){}
+}
+$('resume').onclick=async()=>{try{await api('/api/dashboard/bot/start','POST',{});refresh()}catch(_){}};
+$('pause').onclick=async()=>{try{await api('/api/dashboard/bot/stop','POST',{});refresh()}catch(_){}};
+
+function net(){const on=navigator.onLine;$('net').className='net '+(on?'on':'off');
+  $('netText').textContent=on?'Online':'Offline. Showing saved dashboard'}
+addEventListener('online',()=>{net();refresh()});addEventListener('offline',net);net();
+setInterval(refresh,15000);
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+
+(async()=>{ if(!token){showLogin();return}
+  try{await api('/api/dashboard/admins');showApp()}catch(_){ if(!navigator.onLine){$('app').hidden=false}else showLogin() } })();
+</script>
+</body>
+</html>
